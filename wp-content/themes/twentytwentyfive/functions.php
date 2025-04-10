@@ -266,3 +266,76 @@ function process_like_post() {
 }
 add_action( 'wp_ajax_like_post', 'process_like_post' );
 add_action( 'wp_ajax_nopriv_like_post', 'process_like_post' );
+
+
+/**
+ * Recent posts REST endpoint.
+ */
+function register_recent_posts_endpoint() {
+    register_rest_route(
+        'interview-test/v1',
+        '/posts',
+        array(
+            'methods'  => 'GET',
+            'callback' => 'get_recent_posts_data',
+            'args'     => array(
+                'category_id' => array(
+                    'sanitize_callback' => 'absint',
+                ),
+            ),
+        )
+    );
+}
+
+add_action( 'rest_api_init', 'register_recent_posts_endpoint' );
+
+function get_recent_posts_data( WP_REST_Request $request ) {
+    $category_id = $request->get_param( 'category_id' );
+
+    if ( $category_id ) {
+        if ( ! term_exists( $category_id, 'category' ) ) {
+            return new WP_REST_Response(
+                array(
+                    'error' => 'Invalid category ID.',
+                ),
+                400
+            );
+        }
+    }
+
+    $args = array(
+        'post_type'      => 'post',
+        'post_status'    => 'publish',
+        'posts_per_page' => 10,
+        'orderby'        => 'date',
+        'order'          => 'DESC',
+    );
+
+    if ( $category_id ) {
+        $args['cat'] = intval( $category_id ); 
+    }
+
+    $recent_posts_query = new WP_Query( $args );
+    $posts_data         = array();
+
+    if ( $recent_posts_query->have_posts() ) {
+        while ( $recent_posts_query->have_posts() ) {
+            $recent_posts_query->the_post();
+            $categories     = get_the_category();
+            $category_names = array_map( function ( $category ) {
+                return $category->name;
+            }, $categories );
+
+            $posts_data[] = array(
+                'id'         => get_the_ID(),
+                'title'      => get_the_title(),
+                'excerpt'    => get_the_excerpt(),
+                'categories' => $category_names,
+            );
+        }
+        wp_reset_postdata();
+        return new WP_REST_Response( $posts_data, 200 );
+    } else {
+        return new WP_REST_Response( array(), 200 );
+    }
+}
