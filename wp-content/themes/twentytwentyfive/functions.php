@@ -201,3 +201,68 @@ function list_recent_posts_shortcode( $atts ) {
     }
 }
 add_shortcode( 'list_recent_posts', 'list_recent_posts_shortcode' );
+
+function like_post_shortcode( $atts ) {
+	$atts = shortcode_atts(
+		array(
+			'post' => get_the_ID(),
+		),
+		$atts,
+		'like_post'
+	);
+
+	$post_id = absint( $atts['post'] );
+
+	wp_enqueue_script( 'like-post-script', get_stylesheet_directory_uri() . '/assets/js/like-post.js', array( 'jquery' ), '1.0', true );
+	wp_localize_script(
+		'like-post-script',
+		'likePostData',
+		array(
+			'ajaxurl'   => admin_url( 'admin-ajax.php' ),
+			'nonce'     => wp_create_nonce( 'like_post_nonce' ),
+			'post_id'   => $post_id,
+			'liked_text' => 'Liked!',
+		)
+	);
+
+	$likes_count = get_post_meta( $post_id, '_post_likes', true );
+	$likes_count = $likes_count ? intval( $likes_count ) : 0;
+
+	$output = '<div class="like-post-container">';
+	$output .= '<button class="like-button" data-post-id="' . $post_id . '">Like</button>';
+	$output .= '<span class="likes-count">(';
+	if ( $likes_count == 1 ) {
+		$output .= esc_html( $likes_count ) . ' like';
+	} else {
+		$output .= esc_html( $likes_count ) . ' likes';
+	}
+	$output .= ')</span>';
+	$output .= '</div>';
+
+	return $output;
+}
+add_shortcode( 'like_post', 'like_post_shortcode' );
+
+/**
+ * AJAX handler to process the like action.
+ */
+function process_like_post() {
+	check_ajax_referer( 'like_post_nonce', 'nonce' );
+
+	if ( isset( $_POST['post_id'] ) ) {
+		$post_id = absint( $_POST['post_id'] );
+
+		$likes_count = get_post_meta( $post_id, '_post_likes', true );
+		$likes_count = $likes_count ? intval( $likes_count ) + 1 : 1;
+
+		update_post_meta( $post_id, '_post_likes', $likes_count );
+
+		wp_send_json_success( array( 'likes' => $likes_count ) );
+	} else {
+		wp_send_json_error( 'No post ID provided.' );
+	}
+
+	die();
+}
+add_action( 'wp_ajax_like_post', 'process_like_post' );
+add_action( 'wp_ajax_nopriv_like_post', 'process_like_post' );
