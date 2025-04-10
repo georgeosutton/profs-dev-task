@@ -1,0 +1,35 @@
+version: "3.1"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8080:80
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: user
+      WORDPRESS_DB_PASSWORD: password
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - ..:/workspace/${COMPOSE_PROJECT_NAME}:cached
+      - ../wp-content:/var/www/html/wp-content
+      - wordpress_data:/var/www/html
+  db:
+    image: mariadb
+    restart: unless-stopped
+    ports:
+      - 8086:3306
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: rootpassword
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:
+  wordpress_data:

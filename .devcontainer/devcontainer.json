@@ -1,0 +1,13 @@
+{
+  "name": "WordPress",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace/${localWorkspaceFolderBasename}",
+  "initializeCommand": "echo COMPOSE_PROJECT_NAME=${localWorkspaceFolderBasename} > .devcontainer/.env",
+  "forwardPorts": [8080],
+  "remoteUser": "wordpress",
+  "postCreateCommand": "sudo chown -R wordpress:wordpress /workspace/${localWorkspaceFolderBasename} && sudo chmod -R g+w /workspace/${localWorkspaceFolderBasename}",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+}
+}
