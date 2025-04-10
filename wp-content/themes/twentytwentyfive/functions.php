@@ -156,3 +156,48 @@ if ( ! function_exists( 'twentytwentyfive_format_binding' ) ) :
 		}
 	}
 endif;
+
+function list_recent_posts_shortcode( $atts ) {
+    $atts = shortcode_atts(
+        array(
+            'number' => 5,
+            'title'  => 'Recent Posts',
+        ),
+        $atts,
+        'list_recent_posts'
+    );
+
+    $number_of_posts = absint( $atts['number'] );
+    $list_title      = esc_html( $atts['title'] );
+
+    $recent_posts_query = new WP_Query(
+        array(
+            'post_type'      => 'post',
+            'posts_per_page' => $number_of_posts,
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+        )
+    );
+
+    if ( $recent_posts_query->have_posts() ) {
+        $output = '<div>';
+        $output .= '<h2>' . $list_title . '</h2>';
+        $output .= '<ul>';
+        while ( $recent_posts_query->have_posts() ) {
+            $recent_posts_query->the_post();
+            $output .= '<li>';
+            $output .= '<h3><a href="' . esc_url( get_permalink() ) . '">' . esc_html( get_the_title() ) . '</a></h3>';
+            $output .= '<div>';
+            $output .= get_the_excerpt();
+            $output .= '</div>';
+            $output .= '</li>';
+        }
+        $output .= '</ul>';
+        $output .= '</div>';
+        wp_reset_postdata();
+        return $output;
+    } else {
+        return '<p>No recent posts found.</p>';
+    }
+}
+add_shortcode( 'list_recent_posts', 'list_recent_posts_shortcode' );
